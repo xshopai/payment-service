@@ -1,39 +1,137 @@
-# Payment Service
+# 💳 Payment Service
 
-A comprehensive .NET Core 8 payment processing service that supports multiple payment providers including Stripe, PayPal, and Square. The service provides a unified API for processing payments, refunds, and managing payment methods across different providers.
+Payment processing microservice for xShop.ai - handles payment transactions, refunds, and payment methods across multiple providers (Stripe, PayPal, Square).
 
-## Features
+## 🚀 Quick Start
 
-### 🏗️ Architecture
+### Prerequisites
 
-- **Microservice Architecture**: Standalone payment service with REST API
-- **Provider Abstraction**: Unified interface supporting multiple payment providers
-- **Database Integration**: Entity Framework Core with SQL Server
-- **JWT Authentication**: Secure API endpoints with user context
-- **Correlation ID Tracing**: Full request tracing across distributed systems
-- **Configuration-Driven**: Easy provider enabling/disabling via configuration
+- **.NET 8 SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/8.0))
+- **SQL Server** 2019+ ([Download](https://www.microsoft.com/sql-server/sql-server-downloads))
+- **Dapr CLI** 1.16+ ([Install Guide](https://docs.dapr.io/getting-started/install-dapr-cli/))
 
-### 💳 Payment Providers
+### Setup
 
-- **Stripe**: Full card processing, payment methods, refunds
-- **PayPal**: PayPal account payments and refunds
-- **Square**: Card processing with Square ecosystem
-- **Extensible**: Easy to add new payment providers
+**1. Start SQL Server**
+```bash
+# Using Docker (recommended)
+docker run -d --name payment-sqlserver -p 1433:1433 \
+  -e 'ACCEPT_EULA=Y' \
+  -e 'SA_PASSWORD=YourStrong@Passw0rd' \
+  mcr.microsoft.com/mssql/server:2019-latest
 
-### 🔒 Security
+# Or install SQL Server locally
+```
 
-- JWT token authentication
-- Secure payment method storage
+**2. Clone & Restore**
+```bash
+git clone https://github.com/xshopai/payment-service.git
+cd payment-service
+dotnet restore
+```
+
+**3. Configure Environment**
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env - update these values:
+# ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=payment_db;User Id=sa;Password=YourStrong@Passw0rd
+# Stripe__SecretKey=your_stripe_secret_key
+# Stripe__PublishableKey=your_stripe_publishable_key
+```
+
+**4. Apply Migrations**
+```bash
+dotnet ef database update
+```
+
+**5. Run Service**
+```bash
+# Start with Dapr (recommended)
+./run.sh       # Linux/Mac
+.\run.ps1      # Windows
+
+# Or run directly
+dotnet run
+```
+
+**6. Verify**
+```bash
+# Check health
+curl http://localhost:8080/health
+
+# Swagger UI
+Open http://localhost:8080/swagger
+```
+
+### Common Commands
+
+```bash
+# Run tests
+dotnet test
+
+# Build
+dotnet build
+
+# Apply new migration
+dotnet ef migrations add MigrationName
+
+# Production mode
+dotnet run --configuration Release
+```
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
+| [📘 Technical Reference](docs/TECHNICAL.md) | Architecture, security, monitoring |
+| [🤝 Contributing](docs/CONTRIBUTING.md) | Contribution guidelines and workflow |
+
+**API Documentation**: Swagger UI available at `/swagger` endpoint.
+
+## ⚙️ Configuration
+
+### Required Environment Variables
+
+```bash
+# Service
+ASPNETCORE_ENVIRONMENT=Development
+ASPNETCORE_URLS=http://+:8080
+
+# Database
+ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=payment_db;User Id=sa;Password=YourStrong@Passw0rd
+
+# JWT
+Jwt__Key=your-secret-key-min-32-characters
+Jwt__Issuer=PaymentService
+Jwt__Audience=PaymentService.Users
+
+# Payment Providers
+Stripe__SecretKey=sk_test_...
+Stripe__PublishableKey=pk_test_...
+PayPal__ClientId=your_paypal_client_id
+PayPal__ClientSecret=your_paypal_client_secret
+
+# Dapr
+DAPR_HTTP_PORT=3508
+DAPR_GRPC_PORT=50008
+```
+
+See [.env.example](.env.example) for complete configuration options.
+
+## ✨ Key Features
+
+- Multi-provider support (Stripe, PayPal, Square)
+- Payment processing with provider abstraction
+- Refund management (full and partial)
+- Payment method storage and retrieval
+- Transaction history and audit trails
+- Multi-currency support (USD, EUR, GBP, CAD)
 - PCI compliance considerations
-- Audit trails and logging
-
-### 📊 Core Functionality
-
-- **Payment Processing**: Process one-time and saved payment method payments
-- **Refund Management**: Full and partial refunds with provider sync
-- **Payment Methods**: Save, retrieve, and delete customer payment methods
-- **Transaction History**: Complete payment and refund history
-- **Multi-currency Support**: USD, EUR, GBP, CAD
+- JWT authentication
+- Idempotency for payment operations
 
 ## API Endpoints
 

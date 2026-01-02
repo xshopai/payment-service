@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Payment Service is a highly secure .NET 8 microservice responsible for payment processing, financial transactions, and payment method management within the AIOutlet platform. This service handles extremely sensitive financial data and must comply with the highest security standards including PCI DSS.
+The Payment Service is a highly secure .NET 8 microservice responsible for payment processing, financial transactions, and payment method management within the xShop.ai platform. This service handles extremely sensitive financial data and must comply with the highest security standards including PCI DSS.
 
 ## Supported Versions
 

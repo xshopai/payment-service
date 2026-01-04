@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Payment Service is a highly secure .NET 8 microservice responsible for payment processing, financial transactions, and payment method management within the xShop.ai platform. This service handles extremely sensitive financial data and must comply with the highest security standards including PCI DSS.
+The Payment Service is a highly secure .NET 8 microservice responsible for payment processing, financial transactions, and payment method management within the xshop.ai platform. This service handles extremely sensitive financial data and must comply with the highest security standards including PCI DSS.
 
 ## Supported Versions
 
@@ -258,7 +258,7 @@ Payment service vulnerabilities require immediate attention:
 
 1. **Do NOT** open a public issue
 2. **Do NOT** test with real payment data
-3. **Email** our security team at: <security@aioutlet.com>
+3. **Email** our security team at: <security@xshopai.com>
 4. **Mark as**: "URGENT PCI DSS SECURITY ISSUE"
 
 ### Critical Security Areas
@@ -444,10 +444,10 @@ The Payment Service maintains PCI DSS Level 1 compliance:
 
 For security-related questions or concerns:
 
-- **Email**: <security@aioutlet.com>
+- **Email**: <security@xshopai.com>
 - **Emergency**: Include "URGENT PCI DSS SECURITY" in subject line
-- **Financial Issues**: Copy <finance@aioutlet.com>
-- **Compliance**: Copy <compliance@aioutlet.com>
+- **Financial Issues**: Copy <finance@xshopai.com>
+- **Compliance**: Copy <compliance@xshopai.com>
 
 ---
 

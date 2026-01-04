@@ -1,6 +1,6 @@
 # 💳 Payment Service
 
-Payment processing microservice for xShop.ai - handles payment transactions, refunds, and payment methods across multiple providers (Stripe, PayPal, Square).
+Payment processing microservice for xshop.ai - handles payment transactions, refunds, and payment methods across multiple providers (Stripe, PayPal, Square).
 
 ## 🚀 Quick Start
 
@@ -167,8 +167,8 @@ GET    /api/paymentmethods/providers/{name}/status # Check provider status
   },
   "Jwt": {
     "Key": "your-jwt-key",
-    "Issuer": "aioutlet-payment-service",
-    "Audience": "aioutlet-clients"
+    "Issuer": "xshopai-payment-service",
+    "Audience": "xshopai-clients"
   },
   "PaymentService": {
     "MaxPaymentAmount": 10000.0,

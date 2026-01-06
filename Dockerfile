@@ -101,11 +101,11 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "PaymentService.dll"]
 
 # Labels for better image management and security scanning
-LABEL maintainer="xshop.ai Team"
+LABEL maintainer="xshopai Team"
 LABEL service="payment-service"
 LABEL version="1.0.0"
 LABEL org.opencontainers.image.source="https://github.com/xshopai/xshopai"
-LABEL org.opencontainers.image.description="Payment Service for xshop.ai platform"
-LABEL org.opencontainers.image.vendor="xshop.ai"
+LABEL org.opencontainers.image.description="Payment Service for xshopai platform"
+LABEL org.opencontainers.image.vendor="xshopai"
 LABEL framework="aspnetcore"
 LABEL language="csharp"

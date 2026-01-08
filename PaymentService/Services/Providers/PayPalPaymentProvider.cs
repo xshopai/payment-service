@@ -289,7 +289,7 @@ public class PayPalPaymentProvider : IPaymentProvider
             {
                 ReturnUrl = _settings.ReturnUrl,
                 CancelUrl = _settings.CancelUrl,
-                BrandName = "AI Outlet",
+                BrandName = "xshopai",
                 LandingPage = "BILLING",
                 UserAction = "PAY_NOW"
             }

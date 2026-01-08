@@ -392,4 +392,4 @@ Jwt__Key="production-jwt-key"
 
 ## License
 
-This project is part of the AI Outlet microservices architecture.
+This project is part of the xshopai microservices architecture.

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Payment Service - Bash Run Script with Dapr
-# Port: 1009, Dapr HTTP: 3509, Dapr gRPC: 50009
+# Port: 8009, Dapr HTTP: 3509, Dapr gRPC: 50009
 
 echo ""
 echo "============================================"
@@ -11,8 +11,8 @@ echo ""
 # Kill any existing processes on ports
 echo "Cleaning up existing processes..."
 
-# Kill processes on port 1009 (app port)
-lsof -ti:1009 | xargs kill -9 2>/dev/null || true
+# Kill processes on port 8009 (app port)
+lsof -ti:8009 | xargs kill -9 2>/dev/null || true
 
 # Kill processes on port 3509 (Dapr HTTP port)
 lsof -ti:3509 | xargs kill -9 2>/dev/null || true
@@ -25,14 +25,14 @@ sleep 2
 echo ""
 echo "Starting with Dapr sidecar..."
 echo "App ID: payment-service"
-echo "App Port: 1009"
+echo "App Port: 8009"
 echo "Dapr HTTP Port: 3509"
 echo "Dapr gRPC Port: 50009"
 echo ""
 
 dapr run \
   --app-id payment-service \
-  --app-port 1009 \
+  --app-port 8009 \
   --dapr-http-port 3509 \
   --dapr-grpc-port 50009 \
   --log-level error \

@@ -62,14 +62,13 @@ USER paymentuser
 
 # Health check (using wget which is smaller than curl)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8009/health || exit 1
 
 # Expose port
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8009
 
 # Run in development mode with hot reload
-ENTRYPOINT ["dotnet", "watch", "run", "--project", "PaymentService/PaymentService.csproj", "--urls", "http://0.0.0.0:80"]
+ENTRYPOINT ["dotnet", "watch", "run", "--project", "PaymentService/PaymentService.csproj", "--urls", "http://0.0.0.0:8009"]
 
 # -----------------------------------------------------------------------------
 # Production stage - Optimized for production deployment
@@ -87,14 +86,13 @@ USER paymentuser
 
 # Health check (using wget which is smaller than curl)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8009/health || exit 1
 
 # Expose port
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8009
 
 # Configure ASP.NET Core
-ENV ASPNETCORE_URLS=http://+:80
+ENV ASPNETCORE_URLS=http://+:8009
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Entry point

@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Payment Service - PowerShell Run Script with Dapr
-# Port: 8009, Dapr HTTP: 3509, Dapr gRPC: 50009
+# Port: 8009, Dapr HTTP: 3500, Dapr gRPC: 50001
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
@@ -24,17 +24,17 @@ if ($process) {
     Stop-Process -Id $process -Force -ErrorAction SilentlyContinue
 }
 
-# Kill process on port 3509 (Dapr HTTP port)
-$process = Get-NetTCPConnection -LocalPort 3509 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+# Kill process on port 3500 (Dapr HTTP port)
+$process = Get-NetTCPConnection -LocalPort 3500 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
 if ($process) {
-    Write-Host "Killing process on port 3509 (PID: $process)" -ForegroundColor Yellow
+    Write-Host "Killing process on port 3500 (PID: $process)" -ForegroundColor Yellow
     Stop-Process -Id $process -Force -ErrorAction SilentlyContinue
 }
 
-# Kill process on port 50009 (Dapr gRPC port)
-$process = Get-NetTCPConnection -LocalPort 50009 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+# Kill process on port 50001 (Dapr gRPC port)
+$process = Get-NetTCPConnection -LocalPort 50001 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
 if ($process) {
-    Write-Host "Killing process on port 50009 (PID: $process)" -ForegroundColor Yellow
+    Write-Host "Killing process on port 50001 (PID: $process)" -ForegroundColor Yellow
     Stop-Process -Id $process -Force -ErrorAction SilentlyContinue
 }
 
@@ -44,15 +44,15 @@ Write-Host ""
 Write-Host "Starting with Dapr sidecar..." -ForegroundColor Green
 Write-Host "App ID: payment-service" -ForegroundColor Cyan
 Write-Host "App Port: 8009" -ForegroundColor Cyan
-Write-Host "Dapr HTTP Port: 3509" -ForegroundColor Cyan
-Write-Host "Dapr gRPC Port: 50009" -ForegroundColor Cyan
+Write-Host "Dapr HTTP Port: 3500" -ForegroundColor Cyan
+Write-Host "Dapr gRPC Port: 50001" -ForegroundColor Cyan
 Write-Host ""
 
 dapr run `
   --app-id payment-service `
   --app-port 8009 `
-  --dapr-http-port 3509 `
-  --dapr-grpc-port 50009 `
+  --dapr-http-port 3500 `
+  --dapr-grpc-port 50001 `
   --log-level error `
   --resources-path ./.dapr/components `
   --config ./.dapr/config.yaml `

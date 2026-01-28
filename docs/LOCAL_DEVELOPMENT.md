@@ -36,7 +36,7 @@ Update `PaymentService/appsettings.Development.json`:
     "WebhookSecret": "whsec_your_webhook_secret"
   },
   "Dapr": {
-    "HttpPort": 3509,
+    "HttpPort": 3500,
     "PubSubName": "xshopai-pubsub"
   }
 }

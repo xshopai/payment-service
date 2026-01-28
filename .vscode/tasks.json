@@ -16,7 +16,7 @@
     {
       "label": "dapr-debug",
       "type": "shell",
-      "command": "dapr run --app-id payment-service --app-port 8009 --dapr-http-port 3509 --dapr-grpc-port 50009 --resources-path ./.dapr --config ./.dapr/config.yaml --log-level error",
+      "command": "dapr run --app-id payment-service --app-port 8009 --dapr-http-port 3500 --dapr-grpc-port 50001 --resources-path ./.dapr --config ./.dapr/config.yaml --log-level error",
       "isBackground": true,
       "problemMatcher": {
         "pattern": [

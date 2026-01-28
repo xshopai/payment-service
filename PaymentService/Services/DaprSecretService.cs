@@ -10,7 +10,7 @@ public class DaprSecretService
 {
     private readonly DaprClient _daprClient;
     private readonly ILogger<DaprSecretService> _logger;
-    private const string SecretStoreName = "secret-store";
+    private const string SecretStoreName = "secretstore";
 
     public DaprSecretService(DaprClient daprClient, ILogger<DaprSecretService> logger)
     {

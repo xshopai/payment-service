@@ -11,7 +11,7 @@ public class DaprEventPublisher
 {
     private readonly DaprClient _daprClient;
     private readonly ILogger<DaprEventPublisher> _logger;
-    private const string PubSubName = "event-bus";
+    private const string PubSubName = "pubsub";
 
     public DaprEventPublisher(
         DaprClient daprClient,

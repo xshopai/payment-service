@@ -12,7 +12,7 @@ namespace PaymentService.Configuration;
 /// </summary>
 public static class DaprSecretsConfiguration
 {
-    private const string SecretStoreName = "secret-store";
+    private const string SecretStoreName = "secretstore";
 
     /// <summary>
     /// Load secrets from Dapr and configure IConfiguration

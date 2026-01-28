@@ -6,7 +6,7 @@ spec:
   topic: order.created
   routes:
     default: /api/events/orders/order-created
-  pubsubname: event-bus
+  pubsubname: pubsub
   deadLetterTopic: order.created.deadletter
 scopes:
   - payment-service
@@ -19,7 +19,7 @@ spec:
   topic: order.cancelled
   routes:
     default: /api/events/orders/order-cancelled
-  pubsubname: event-bus
+  pubsubname: pubsub
   deadLetterTopic: order.cancelled.deadletter
 scopes:
   - payment-service

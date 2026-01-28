@@ -98,6 +98,10 @@ else
             "ConnectionStrings__DefaultConnection=secretref:db-connection" \
             "Stripe__ApiKey=secretref:stripe-key" \
             "Dapr__HttpPort=3500" \
+            "Dapr__GrpcPort=50001" \
+            "DAPR_HTTP_PORT=3500" \
+            "DAPR_GRPC_PORT=50001" \
+            "DAPR_PUBSUB_NAME=pubsub" \
         --output none
 fi
 

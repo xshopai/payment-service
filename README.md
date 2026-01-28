@@ -13,6 +13,7 @@ Payment processing microservice for xshopai - handles payment transactions, refu
 ### Setup
 
 **1. Start SQL Server**
+
 ```bash
 # Using Docker (recommended)
 docker run -d --name payment-sqlserver -p 1433:1433 \
@@ -24,6 +25,7 @@ docker run -d --name payment-sqlserver -p 1433:1433 \
 ```
 
 **2. Clone & Restore**
+
 ```bash
 git clone https://github.com/xshopai/payment-service.git
 cd payment-service
@@ -31,6 +33,7 @@ dotnet restore
 ```
 
 **3. Configure Environment**
+
 ```bash
 # Copy environment template
 cp .env.example .env
@@ -42,11 +45,13 @@ cp .env.example .env
 ```
 
 **4. Apply Migrations**
+
 ```bash
 dotnet ef database update
 ```
 
 **5. Run Service**
+
 ```bash
 # Start with Dapr (recommended)
 ./run.sh       # Linux/Mac
@@ -57,6 +62,7 @@ dotnet run
 ```
 
 **6. Verify**
+
 ```bash
 # Check health
 curl http://localhost:8080/health
@@ -83,11 +89,11 @@ dotnet run --configuration Release
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
+| Document                                      | Description                             |
+| --------------------------------------------- | --------------------------------------- |
 | [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md) | Architecture, security, monitoring |
-| [🤝 Contributing](docs/CONTRIBUTING.md) | Contribution guidelines and workflow |
+| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
+| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
 
 **API Documentation**: Swagger UI available at `/swagger` endpoint.
 
@@ -115,8 +121,8 @@ PayPal__ClientId=your_paypal_client_id
 PayPal__ClientSecret=your_paypal_client_secret
 
 # Dapr
-DAPR_HTTP_PORT=3508
-DAPR_GRPC_PORT=50008
+DAPR_HTTP_PORT=3500
+DAPR_GRPC_PORT=50001
 ```
 
 See [.env.example](.env.example) for complete configuration options.

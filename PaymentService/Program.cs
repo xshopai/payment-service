@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using PaymentService.Configuration;
 using PaymentService.Data;
+using PaymentService.Messaging;
 using PaymentService.Events.Publishers;
 using PaymentService.Middlewares;
 using PaymentService.Services;
@@ -163,8 +164,11 @@ builder.Services.AddScoped<IStandardLogger, StandardLogger>();
 builder.Services.AddScoped<IPaymentService, PaymentService.Services.PaymentService>();
 
 // Dapr Services
-builder.Services.AddSingleton<DaprEventPublisher>();
+builder.Services.AddSingleton<DaprEventPublisher>();  // Keep for backward compatibility
 builder.Services.AddSingleton<PaymentService.Services.DaprSecretService>();
+
+// Register Messaging abstraction layer (supports dapr, rabbitmq, servicebus via MESSAGING_PROVIDER config)
+builder.Services.AddMessaging(builder.Configuration);
 
 // Payment Providers
 builder.Services.AddScoped<StripeProvider>();

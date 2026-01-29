@@ -110,12 +110,12 @@ az containerapp create \
   --dapr-app-id $APP_NAME \
   --dapr-app-port $APP_PORT \
   --secrets \
-    "db-conn=$CONNECTION_STRING" \
+    "sql-conn=$CONNECTION_STRING" \
     "stripe-key=<your-stripe-secret-key>" \
   --env-vars \
     "ASPNETCORE_URLS=http://+:$APP_PORT" \
     "ASPNETCORE_ENVIRONMENT=Production" \
-    "ConnectionStrings__DefaultConnection=secretref:db-conn" \
+    "ConnectionStrings__DefaultConnection=secretref:sql-conn" \
     "Stripe__SecretKey=secretref:stripe-key"
 ```
 
@@ -123,12 +123,12 @@ az containerapp create \
 
 ### Environment Variables
 
-| Variable                               | Description              |
-| -------------------------------------- | ------------------------ |
-| `ASPNETCORE_URLS`                      | ASP.NET Core URLs        |
-| `ASPNETCORE_ENVIRONMENT`               | Environment (Production) |
-| `ConnectionStrings__DefaultConnection` | SQL connection string    |
-| `Stripe__SecretKey`                    | Stripe secret API key    |
+| Variable                               | Description                  |
+| -------------------------------------- | ---------------------------- |
+| `ASPNETCORE_URLS`                      | ASP.NET Core URLs            |
+| `ASPNETCORE_ENVIRONMENT`               | Environment (Production)     |
+| `ConnectionStrings__DefaultConnection` | SQL Server connection string |
+| `Stripe__SecretKey`                    | Stripe secret API key        |
 
 ## Security Considerations
 

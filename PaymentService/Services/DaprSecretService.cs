@@ -3,29 +3,32 @@ using Dapr.Client;
 namespace PaymentService.Services;
 
 /// <summary>
-/// Service for retrieving secrets from Dapr Secret Store
+/// Service for retrieving secrets from Dapr Secret Store with environment variable fallback
 /// Supports payment provider credentials, JWT keys, and database connection strings
 /// </summary>
 public class DaprSecretService
 {
     private readonly DaprClient _daprClient;
     private readonly ILogger<DaprSecretService> _logger;
+    private readonly IConfiguration _configuration;
     private const string SecretStoreName = "secretstore";
 
-    public DaprSecretService(DaprClient daprClient, ILogger<DaprSecretService> logger)
+    public DaprSecretService(DaprClient daprClient, ILogger<DaprSecretService> logger, IConfiguration configuration)
     {
         _daprClient = daprClient;
         _logger = logger;
+        _configuration = configuration;
     }
 
     /// <summary>
-    /// Get a secret value from Dapr Secret Store
+    /// Get a secret value from Dapr Secret Store with environment variable fallback
     /// </summary>
-    /// <param name="secretName">Name of the secret (e.g., "jwt:secret")</param>
+    /// <param name="secretName">Name of the secret (e.g., "Jwt:Key")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Secret value or null if not found</returns>
     public async Task<string?> GetSecretAsync(string secretName, CancellationToken cancellationToken = default)
     {
+        // First try Dapr secret store
         try
         {
             _logger.LogDebug("Retrieving secret: {SecretName} from store: {StoreName}", 
@@ -36,29 +39,39 @@ public class DaprSecretService
                 secretName,
                 cancellationToken: cancellationToken);
 
-            if (secrets == null || secrets.Count == 0)
+            if (secrets != null && secrets.Count > 0)
             {
-                _logger.LogWarning("Secret not found: {SecretName} in store: {StoreName}", secretName, SecretStoreName);
-                return null;
+                var value = secrets.FirstOrDefault().Value;
+                _logger.LogDebug("Successfully retrieved secret from Dapr: {SecretName}", secretName);
+                return value;
             }
-
-            var value = secrets.FirstOrDefault().Value;
-            _logger.LogDebug("Successfully retrieved secret: {SecretName}", secretName);
-            return value;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve secret: {SecretName}", secretName);
-            return null;
+            _logger.LogDebug(ex, "Dapr secret store unavailable for: {SecretName}, falling back to configuration", secretName);
         }
+
+        // Fallback to configuration/environment variables
+        // Convert Dapr key format (Jwt:Key) to env var format (Jwt__Key)
+        var configKey = secretName.Replace(":", "__");
+        var configValue = _configuration[secretName] ?? _configuration[configKey];
+        
+        if (!string.IsNullOrEmpty(configValue))
+        {
+            _logger.LogDebug("Retrieved secret from configuration: {SecretName}", secretName);
+            return configValue;
+        }
+
+        _logger.LogWarning("Secret not found in Dapr or configuration: {SecretName}", secretName);
+        return null;
     }
 
     /// <summary>
-    /// Get JWT configuration from secrets
+    /// Get JWT configuration from secrets or environment variables
     /// </summary>
     public async Task<(string? Key, string? Issuer, string? Audience)> GetJwtConfigAsync(CancellationToken cancellationToken = default)
     {
-        var key = await GetSecretAsync("Jwt:Key", cancellationToken);
+        var key = await GetSecretAsync("Jwt:Secret", cancellationToken);
         var issuer = await GetSecretAsync("Jwt:Issuer", cancellationToken);
         var audience = await GetSecretAsync("Jwt:Audience", cancellationToken);
 

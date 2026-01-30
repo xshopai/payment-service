@@ -8,13 +8,14 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (wget for healthcheck)
 RUN apt-get update && apt-get install -y \
-    curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r paymentuser && useradd -r -g paymentuser paymentuser
+# Create non-root user and set permissions
+RUN groupadd -r paymentuser && useradd -r -g paymentuser paymentuser \
+    && chown -R paymentuser:paymentuser /app
 
 # -----------------------------------------------------------------------------
 # Build stage - Build the application

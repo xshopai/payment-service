@@ -17,8 +17,8 @@ using PayPalProvider = PaymentService.Services.Providers.PayPalPaymentProvider;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to listen on port 1009
-builder.WebHost.UseUrls("http://0.0.0.0:1009");
+// Port configuration is handled via ASPNETCORE_URLS environment variable
+// Default: http://+:8009 (set in Dockerfile or container environment)
 
 // Add Dapr client for runtime secret access
 builder.Services.AddDaprClient();

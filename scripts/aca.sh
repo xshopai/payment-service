@@ -357,15 +357,16 @@ else
         --registry-password "$ACR_PASSWORD" \
         --target-port $APP_PORT \
         --ingress external \
-        --min-replicas 1 \
-        --max-replicas 5 \
-        --cpu 0.5 \
-        --memory 1.0Gi \
+        --min-replicas 2 \
+        --max-replicas 10 \
+        --cpu 1.0 \
+        --memory 2.0Gi \
         --enable-dapr \
         --dapr-app-id "$SERVICE_NAME" \
         --dapr-app-port $APP_PORT \
         --env-vars "${ENV_VARS[@]}" \
         ${IDENTITY_ID:+--user-assigned "$IDENTITY_ID"} \
+        --tags "project=$PROJECT_NAME" "environment=$ENVIRONMENT" "suffix=$SUFFIX" "service=$SERVICE_NAME" \
         --output none
     
     print_success "Container app created"

@@ -21,17 +21,31 @@ public class DaprSecretService
     }
 
     /// <summary>
-    /// Get a secret value from Dapr Secret Store with environment variable fallback
+    /// Get a secret value with environment variable priority.
+    /// Priority:
+    /// 1. Configuration/environment variables (Azure deployment - injected from Key Vault)
+    /// 2. Dapr secret store (local development with .dapr/secrets.json)
     /// </summary>
-    /// <param name="secretName">Name of the secret (e.g., "Jwt:Key")</param>
+    /// <param name="secretName">Name of the secret (e.g., "Jwt:Secret")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Secret value or null if not found</returns>
     public async Task<string?> GetSecretAsync(string secretName, CancellationToken cancellationToken = default)
     {
-        // First try Dapr secret store
+        // First try configuration/environment variables (Azure deployment)
+        // Convert Dapr key format (Jwt:Secret) to env var format (Jwt__Secret)
+        var configKey = secretName.Replace(":", "__");
+        var configValue = _configuration[secretName] ?? _configuration[configKey];
+        
+        if (!string.IsNullOrEmpty(configValue))
+        {
+            _logger.LogDebug("Retrieved secret from configuration: {SecretName}", secretName);
+            return configValue;
+        }
+
+        // Fallback to Dapr secret store (local development)
         try
         {
-            _logger.LogDebug("Retrieving secret: {SecretName} from store: {StoreName}", 
+            _logger.LogDebug("Retrieving secret from Dapr: {SecretName} from store: {StoreName}", 
                 secretName, SecretStoreName);
 
             var secrets = await _daprClient.GetSecretAsync(
@@ -48,21 +62,10 @@ public class DaprSecretService
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Dapr secret store unavailable for: {SecretName}, falling back to configuration", secretName);
+            _logger.LogDebug(ex, "Dapr secret store unavailable for: {SecretName}", secretName);
         }
 
-        // Fallback to configuration/environment variables
-        // Convert Dapr key format (Jwt:Key) to env var format (Jwt__Key)
-        var configKey = secretName.Replace(":", "__");
-        var configValue = _configuration[secretName] ?? _configuration[configKey];
-        
-        if (!string.IsNullOrEmpty(configValue))
-        {
-            _logger.LogDebug("Retrieved secret from configuration: {SecretName}", secretName);
-            return configValue;
-        }
-
-        _logger.LogWarning("Secret not found in Dapr or configuration: {SecretName}", secretName);
+        _logger.LogWarning("Secret not found in configuration or Dapr: {SecretName}", secretName);
         return null;
     }
 

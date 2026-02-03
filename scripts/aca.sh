@@ -265,13 +265,6 @@ echo -e "   Dapr HTTP Port:    $DAPR_HTTP_PORT"
 echo -e "   Dapr Pub/Sub:      $DAPR_PUBSUB_NAME"
 echo ""
 
-read -p "Do you want to proceed with deployment? (Y/n): " CONFIRM
-CONFIRM=${CONFIRM:-Y}
-if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
-    print_warning "Deployment cancelled by user"
-    exit 0
-fi
-
 # ============================================================================
 # Step 1: Build and Push Container Image
 # ============================================================================

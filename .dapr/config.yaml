@@ -10,7 +10,7 @@ spec:
     enabled: false
   tracing:
     samplingRate: '1'
-    otel:
-      endpointAddress: 'localhost:4318'
-      isSecure: false
-      protocol: 'http'
+    zipkin:
+      endpointAddress: 'http://localhost:9411/api/v2/spans'
+  metric:
+    enabled: true

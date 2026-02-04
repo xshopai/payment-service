@@ -1,0 +1,40 @@
+# Payment Service - SQL Server Only
+# For local development: run only SQL Server, run app locally with Dapr
+#
+# Usage:
+#   docker-compose -f docker-compose.db.yml up -d
+#
+# Port: 1433
+# Database: payment_service_db
+# User: sa
+# Password: Admin123!
+
+version: "3.8"
+
+services:
+  payment-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: payment-sqlserver
+    restart: unless-stopped
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Admin123!"
+      MSSQL_PID: "Developer"
+    volumes:
+      - payment_sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Admin123! -C -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  payment_sqlserver_data:
+    name: payment_sqlserver_data

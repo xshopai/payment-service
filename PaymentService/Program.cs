@@ -226,9 +226,6 @@ app.UseCloudEvents();
 app.MapControllers();
 
 // Database migration and seeding
-// NOTE: Commented out due to SQL Server connection issues
-// Uncomment when SQL Server is properly configured
-/*
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<PaymentDbContext>();
@@ -236,7 +233,7 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // Apply pending migrations
+        // Apply pending migrations (creates database if not exists)
         await context.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully");
     }
@@ -246,7 +243,6 @@ using (var scope = app.Services.CreateScope())
         throw;
     }
 }
-*/
 
 app.Logger.LogInformation("Payment Service started successfully");
 

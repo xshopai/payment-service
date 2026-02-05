@@ -91,7 +91,15 @@ public class MessagingProviderFactory
 
     private IMessagingProvider CreateDaprProvider()
     {
-        var daprClient = _serviceProvider.GetRequiredService<DaprClient>();
+        var daprClient = _serviceProvider.GetService<DaprClient>();
+        if (daprClient == null)
+        {
+            var errorMessage = "DaprClient is not available. When MESSAGING_PROVIDER=dapr, ensure Dapr sidecar is running. " +
+                             "For direct messaging without Dapr, set MESSAGING_PROVIDER=rabbitmq or MESSAGING_PROVIDER=servicebus";
+            _logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+        
         var logger = _serviceProvider.GetRequiredService<ILogger<DaprMessagingProvider>>();
         
         var pubSubName = _configuration[DaprPubSubNameKey]

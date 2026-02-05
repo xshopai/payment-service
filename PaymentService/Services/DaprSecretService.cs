@@ -8,16 +8,32 @@ namespace PaymentService.Services;
 /// </summary>
 public class DaprSecretService
 {
-    private readonly DaprClient _daprClient;
+    private readonly DaprClient? _daprClient;
     private readonly ILogger<DaprSecretService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly bool _daprEnabled;
     private const string SecretStoreName = "secretstore";
 
-    public DaprSecretService(DaprClient daprClient, ILogger<DaprSecretService> logger, IConfiguration configuration)
+    public DaprSecretService(DaprClient? daprClient, ILogger<DaprSecretService> logger, IConfiguration configuration)
     {
         _daprClient = daprClient;
         _logger = logger;
         _configuration = configuration;
+        
+        // Check if MESSAGING_PROVIDER is set to something other than dapr
+        var messagingProvider = configuration["MESSAGING_PROVIDER"] 
+            ?? Environment.GetEnvironmentVariable("MESSAGING_PROVIDER")
+            ?? "dapr";
+        _daprEnabled = messagingProvider.Equals("dapr", StringComparison.OrdinalIgnoreCase) && daprClient != null;
+        
+        if (_daprEnabled)
+        {
+            _logger.LogInformation("Dapr Secret Service initialized (Dapr enabled)");
+        }
+        else
+        {
+            _logger.LogInformation("Dapr Secret Service initialized (Dapr disabled - using env vars only)");
+        }
     }
 
     /// <summary>
@@ -26,15 +42,29 @@ public class DaprSecretService
     /// 1. Configuration/environment variables (Azure deployment - injected from Key Vault)
     /// 2. Dapr secret store (local development with .dapr/secrets.json)
     /// </summary>
-    /// <param name="secretName">Name of the secret (e.g., "Jwt:Secret")</param>
+    /// <param name="secretName">Name of the secret (e.g., "Jwt:Secret" or "JWT_SECRET")</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Secret value or null if not found</returns>
     public async Task<string?> GetSecretAsync(string secretName, CancellationToken cancellationToken = default)
     {
         // First try configuration/environment variables (Azure deployment)
-        // Convert Dapr key format (Jwt:Secret) to env var format (Jwt__Secret)
-        var configKey = secretName.Replace(":", "__");
-        var configValue = _configuration[secretName] ?? _configuration[configKey];
+        // Try multiple formats:
+        // 1. Original format (e.g., "JWT_SECRET")
+        // 2. Colon to double underscore (e.g., "Jwt:Secret" -> "Jwt__Secret")
+        // 3. Colon to single underscore, uppercase (e.g., "Jwt:Secret" -> "JWT_SECRET")
+        var configValue = _configuration[secretName];
+        
+        if (string.IsNullOrEmpty(configValue) && secretName.Contains(":"))
+        {
+            var doubleUnderscoreKey = secretName.Replace(":", "__");
+            configValue = _configuration[doubleUnderscoreKey];
+            
+            if (string.IsNullOrEmpty(configValue))
+            {
+                var upperUnderscoreKey = secretName.Replace(":", "_").ToUpperInvariant();
+                configValue = _configuration[upperUnderscoreKey] ?? Environment.GetEnvironmentVariable(upperUnderscoreKey);
+            }
+        }
         
         if (!string.IsNullOrEmpty(configValue))
         {
@@ -43,26 +73,29 @@ public class DaprSecretService
         }
 
         // Fallback to Dapr secret store (local development)
-        try
+        if (_daprEnabled && _daprClient != null)
         {
-            _logger.LogDebug("Retrieving secret from Dapr: {SecretName} from store: {StoreName}", 
-                secretName, SecretStoreName);
-
-            var secrets = await _daprClient.GetSecretAsync(
-                SecretStoreName,
-                secretName,
-                cancellationToken: cancellationToken);
-
-            if (secrets != null && secrets.Count > 0)
+            try
             {
-                var value = secrets.FirstOrDefault().Value;
-                _logger.LogDebug("Successfully retrieved secret from Dapr: {SecretName}", secretName);
-                return value;
+                _logger.LogDebug("Retrieving secret from Dapr: {SecretName} from store: {StoreName}", 
+                    secretName, SecretStoreName);
+
+                var secrets = await _daprClient.GetSecretAsync(
+                    SecretStoreName,
+                    secretName,
+                    cancellationToken: cancellationToken);
+
+                if (secrets != null && secrets.Count > 0)
+                {
+                    var value = secrets.FirstOrDefault().Value;
+                    _logger.LogDebug("Successfully retrieved secret from Dapr: {SecretName}", secretName);
+                    return value;
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Dapr secret store unavailable for: {SecretName}", secretName);
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Dapr secret store unavailable for: {SecretName}", secretName);
+            }
         }
 
         _logger.LogWarning("Secret not found in configuration or Dapr: {SecretName}", secretName);
@@ -86,6 +119,14 @@ public class DaprSecretService
     /// </summary>
     public async Task<string?> GetDatabaseConnectionStringAsync(CancellationToken cancellationToken = default)
     {
+        // Try DATABASE_CONNECTION_STRING first (deployment standard)
+        var connectionString = await GetSecretAsync("DATABASE_CONNECTION_STRING", cancellationToken);
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            return connectionString;
+        }
+        
+        // Fallback to ConnectionStrings:DefaultConnection (legacy format)
         return await GetSecretAsync("ConnectionStrings:DefaultConnection", cancellationToken);
     }
 

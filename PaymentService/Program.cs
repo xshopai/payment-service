@@ -14,6 +14,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using StripeProvider = PaymentService.Services.Providers.StripePaymentProvider;
 using PayPalProvider = PaymentService.Services.Providers.PayPalPaymentProvider;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -196,6 +198,20 @@ builder.Services.AddHealthChecks()
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+
+// Configure OpenTelemetry tracing with Zipkin exporter
+var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "payment-service";
+var zipkinEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_ZIPKIN_ENDPOINT") ?? "http://localhost:9411/api/v2/spans";
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddZipkinExporter(options =>
+        {
+            options.Endpoint = new Uri(zipkinEndpoint);
+        }));
 
 var app = builder.Build();
 

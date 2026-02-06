@@ -61,9 +61,9 @@ RUN groupadd -r paymentuser && useradd -r -g paymentuser paymentuser
 RUN chown -R paymentuser:paymentuser /app
 USER paymentuser
 
-# Health check (using wget which is smaller than curl)
+# Health check (using wget GET request to /health/live)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8009/health || exit 1
+    CMD wget -qO- http://localhost:8009/health/live > /dev/null || exit 1
 
 # Expose port
 EXPOSE 8009
@@ -85,9 +85,9 @@ RUN rm -rf /tmp/* /var/tmp/*
 # Switch to non-root user
 USER paymentuser
 
-# Health check (using wget which is smaller than curl)
+# Health check (using wget GET request to /health/live)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8009/health || exit 1
+    CMD wget -qO- http://localhost:8009/health/live > /dev/null || exit 1
 
 # Expose port
 EXPOSE 8009

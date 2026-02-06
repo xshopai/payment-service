@@ -20,24 +20,6 @@ public class OperationalController : ControllerBase
     }
 
     /// <summary>
-    /// Basic health check endpoint
-    /// </summary>
-    /// <route>GET /health</route>
-    [HttpGet("/health")]
-    public ActionResult<object> Health()
-    {
-        _logger.LogDebug("Health check requested");
-        
-        return Ok(new 
-        { 
-            status = "healthy",
-            service = "payment-service",
-            timestamp = DateTime.UtcNow,
-            version = Environment.GetEnvironmentVariable("API_VERSION") ?? "1.0.0"
-        });
-    }
-
-    /// <summary>
     /// Readiness probe - check if service is ready to serve traffic
     /// </summary>
     /// <route>GET /health/ready</route>

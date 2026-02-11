@@ -68,7 +68,7 @@ public class PaymentEventConsumer : ControllerBase
             }
 
             // Find the payment to refund
-            var payment = await _paymentService.GetPaymentByIdAsync(refundEvent.PaymentId);
+            var payment = await _paymentService.GetPaymentAsync(Guid.Parse(refundEvent.PaymentId));
             
             if (payment == null)
             {
@@ -125,10 +125,13 @@ public class PaymentEventConsumer : ControllerBase
             }
 
             // Process refund (saga compensation)
-            var refundResult = await _paymentService.RefundPaymentAsync(
-                refundEvent.PaymentId,
-                "SAGA_COMPENSATION",
-                $"Order saga failed: {refundEvent.Reason ?? "Unknown reason"}");
+            var refundResult = await _paymentService.ProcessRefundAsync(
+                new PaymentService.Models.DTOs.ProcessRefundDto
+                {
+                    PaymentId = refundEvent.PaymentId,
+                    Amount = payment.Amount,
+                    Reason = $"SAGA_COMPENSATION: Order saga failed: {refundEvent.Reason ?? "Unknown reason"}"
+                });
 
             if (refundResult.IsSuccess)
             {
@@ -139,7 +142,7 @@ public class PaymentEventConsumer : ControllerBase
                         operation = "PAYMENT_REFUND_SUCCESS",
                         orderId = refundEvent.OrderId,
                         paymentId = refundEvent.PaymentId,
-                        refundId = refundResult.TransactionId,
+                        refundId = refundResult.RefundId,
                         amount = payment.Amount,
                         currency = payment.Currency,
                         sagaCompensation = true
@@ -150,7 +153,7 @@ public class PaymentEventConsumer : ControllerBase
                     success = true,
                     message = "Saga compensation completed: Payment refunded",
                     paymentId = refundEvent.PaymentId,
-                    refundId = refundResult.TransactionId,
+                    refundId = refundResult.RefundId,
                     orderId = refundEvent.OrderId,
                     amount = payment.Amount,
                     currency = payment.Currency
@@ -160,6 +163,7 @@ public class PaymentEventConsumer : ControllerBase
             {
                 _logger.Error(
                     $"❌ SAGA COMPENSATION FAILED: Could not refund payment for order {refundEvent.OrderId}",
+                    null,
                     correlationId,
                     new {
                         operation = "PAYMENT_REFUND_FAILED",
@@ -185,6 +189,7 @@ public class PaymentEventConsumer : ControllerBase
         {
             _logger.Error(
                 $"❌ SAGA COMPENSATION ERROR: Exception during payment refund for order {refundEvent.OrderId}",
+                ex,
                 correlationId,
                 new {
                     operation = "PAYMENT_REFUND_EXCEPTION",

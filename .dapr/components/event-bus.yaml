@@ -8,6 +8,8 @@ spec:
   metadata:
     - name: connectionString
       value: 'amqp://admin:admin123@127.0.0.1:5672'
+    - name: exchangeName
+      value: 'xshopai.events'
     - name: consumerID
       value: 'payment-service'
     - name: durable

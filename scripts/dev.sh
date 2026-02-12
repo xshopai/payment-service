@@ -18,7 +18,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$SERVICE_DIR"
 
-# Run with .NET using Development configuration (appsettings.Development.json)
-export ASPNETCORE_ENVIRONMENT=Development
+# Copy appsettings.Development.json to appsettings.json for local development
+if [ -f "PaymentService/appsettings.Development.json" ]; then
+    cp "PaymentService/appsettings.Development.json" "PaymentService/appsettings.json"
+    echo "✅ Copied appsettings.Development.json → appsettings.json"
+fi
+
+# Run with .NET
 export ASPNETCORE_URLS=http://+:8009
 dotnet run --project PaymentService/PaymentService.csproj --no-launch-profile

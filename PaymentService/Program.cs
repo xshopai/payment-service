@@ -76,20 +76,15 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.Configure<PaymentProvidersSettings>(
     builder.Configuration.GetSection("PaymentProviders"));
 
-// Database - use lazy configuration with DaprSecretService
-builder.Services.AddDbContext<PaymentDbContext>((serviceProvider, options) =>
+// Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
 {
-    var secretService = serviceProvider.GetRequiredService<DaprSecretService>();
-    var logger = serviceProvider.GetRequiredService<ILogger<PaymentDbContext>>();
-    
-    var connectionString = secretService.GetDatabaseConnectionStringAsync().GetAwaiter().GetResult();
-    
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        logger.LogError("Database connection string not found in Dapr secrets");
-        throw new InvalidOperationException("Database connection string is required");
-    }
-    
+    throw new InvalidOperationException("Database connection string is required. Set ConnectionStrings:DefaultConnection.");
+}
+
+builder.Services.AddDbContext<PaymentDbContext>(options =>
+{
     options.UseSqlServer(
         connectionString,
         sqlServerOptions => sqlServerOptions.EnableRetryOnFailure(
@@ -98,61 +93,31 @@ builder.Services.AddDbContext<PaymentDbContext>((serviceProvider, options) =>
             errorNumbersToAdd: null));
 });
 
-// JWT Authentication - use lazy configuration with DaprSecretService and caching
-builder.Services.AddSingleton<TokenValidationParameters>(serviceProvider =>
+// JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrEmpty(jwtKey))
 {
-    // This will be resolved lazily when first needed
-    return null!; // Placeholder, will be set up properly in middleware
-});
+    throw new InvalidOperationException("JWT Key is required. Set Jwt:Key in configuration.");
+}
+
+var key = Encoding.ASCII.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Events = new JwtBearerEvents
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            OnMessageReceived = context =>
-            {
-                // Check if TokenValidationParameters is already configured
-                if (options.TokenValidationParameters?.IssuerSigningKey == null)
-                {
-                    // Lazy load JWT configuration from Dapr on first request
-                    var secretService = context.HttpContext.RequestServices.GetRequiredService<DaprSecretService>();
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    
-                    try
-                    {
-                        var (jwtKey, jwtIssuer, jwtAudience) = secretService.GetJwtConfigAsync().GetAwaiter().GetResult();
-                        
-                        if (string.IsNullOrEmpty(jwtKey))
-                        {
-                            logger.LogError("JWT Key not found in Dapr secrets");
-                            throw new InvalidOperationException("JWT Key not found in Dapr secrets");
-                        }
-                        
-                        var key = Encoding.ASCII.GetBytes(jwtKey);
-                        options.TokenValidationParameters = new TokenValidationParameters
-                        {
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(key),
-                            ValidateIssuer = !string.IsNullOrEmpty(jwtIssuer),
-                            ValidIssuer = jwtIssuer,
-                            ValidateAudience = !string.IsNullOrEmpty(jwtAudience),
-                            ValidAudience = jwtAudience,
-                            ValidateLifetime = true,
-                            ClockSkew = TimeSpan.Zero
-                        };
-                        
-                        logger.LogInformation("JWT configuration loaded from Dapr secrets");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to load JWT configuration from Dapr");
-                        throw;
-                    }
-                }
-                
-                return Task.CompletedTask;
-            }
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = !string.IsNullOrEmpty(jwtIssuer),
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = !string.IsNullOrEmpty(jwtAudience),
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
         };
     });
 
@@ -167,8 +132,7 @@ builder.Services.AddScoped<IStandardLogger, StandardLogger>();
 builder.Services.AddScoped<IPaymentService, PaymentService.Services.PaymentService>();
 
 // Dapr Services
-builder.Services.AddSingleton<DaprEventPublisher>();  // Keep for backward compatibility
-builder.Services.AddSingleton<PaymentService.Services.DaprSecretService>();
+builder.Services.AddSingleton<DaprEventPublisher>();
 
 // Register Messaging abstraction layer (supports dapr, rabbitmq, servicebus via MESSAGING_PROVIDER config)
 builder.Services.AddMessaging(builder.Configuration);
@@ -200,15 +164,21 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Configure OpenTelemetry tracing based on OTEL_TRACES_EXPORTER environment variable
+// Configure OpenTelemetry tracing based on OTEL_TRACES_EXPORTER environment variable or config
 // Supported values: zipkin, otlp, azure, none (default)
-var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "payment-service";
-var tracesExporter = Environment.GetEnvironmentVariable("OTEL_TRACES_EXPORTER")?.ToLower() ?? "none";
+var serviceName = Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") 
+    ?? builder.Configuration["Tracing:ServiceName"] 
+    ?? "payment-service";
+var tracesExporter = (Environment.GetEnvironmentVariable("OTEL_TRACES_EXPORTER") 
+    ?? builder.Configuration["Tracing:Exporter"] 
+    ?? "none").ToLower();
 
 switch (tracesExporter)
 {
     case "zipkin":
-        var zipkinEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_ZIPKIN_ENDPOINT") ?? "http://localhost:9411/api/v2/spans";
+        var zipkinEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_ZIPKIN_ENDPOINT") 
+            ?? builder.Configuration["Tracing:ZipkinEndpoint"] 
+            ?? "http://localhost:9411/api/v2/spans";
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(serviceName))
             .WithTracing(tracing => tracing
@@ -219,7 +189,9 @@ switch (tracesExporter)
         break;
 
     case "otlp":
-        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") ?? "http://localhost:4318";
+        var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT") 
+            ?? builder.Configuration["Tracing:OtlpEndpoint"] 
+            ?? "http://localhost:4318";
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(serviceName))
             .WithTracing(tracing => tracing
@@ -230,15 +202,15 @@ switch (tracesExporter)
         break;
 
     case "azure":
-        var connectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING");
-        if (!string.IsNullOrEmpty(connectionString))
+        var appInsightsConnectionString = Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING");
+        if (!string.IsNullOrEmpty(appInsightsConnectionString))
         {
             builder.Services.AddOpenTelemetry()
                 .ConfigureResource(resource => resource.AddService(serviceName))
                 .WithTracing(tracing => tracing
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddAzureMonitorTraceExporter(options => options.ConnectionString = connectionString));
+                    .AddAzureMonitorTraceExporter(options => options.ConnectionString = appInsightsConnectionString));
             Console.WriteLine($"✅ Tracing: Azure Monitor configured for {serviceName}");
         }
         else

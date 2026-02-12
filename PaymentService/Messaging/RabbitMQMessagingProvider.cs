@@ -16,8 +16,10 @@ public class RabbitMQMessagingProvider : IMessagingProvider
 
     // RabbitMQ connection objects (lazy initialized)
     // Using RabbitMQ.Client package types when available
+#pragma warning disable CS0169 // Field is never used - placeholder for future implementation
     private object? _connection;
     private object? _channel;
+#pragma warning restore CS0169
 
     public string ProviderName => "rabbitmq";
 

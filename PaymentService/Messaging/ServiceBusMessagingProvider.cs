@@ -15,7 +15,9 @@ public class ServiceBusMessagingProvider : IMessagingProvider
 
     // Azure Service Bus client objects (lazy initialized)
     // Using Azure.Messaging.ServiceBus package types when available
+#pragma warning disable CS0169 // Field is never used - placeholder for future implementation
     private object? _client;
+#pragma warning restore CS0169
 
     public string ProviderName => "servicebus";
 

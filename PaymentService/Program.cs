@@ -137,6 +137,17 @@ builder.Services.AddSingleton<DaprEventPublisher>();
 // Register Messaging abstraction layer (supports dapr, rabbitmq, servicebus via MESSAGING_PROVIDER config)
 builder.Services.AddMessaging(builder.Configuration);
 
+// Register RabbitMQ background consumer only when using direct RabbitMQ mode (not Dapr)
+var messagingProvider = builder.Configuration["MESSAGING_PROVIDER"]
+    ?? Environment.GetEnvironmentVariable("MESSAGING_PROVIDER")
+    ?? "dapr";
+
+if (messagingProvider.Equals("rabbitmq", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddHostedService<PaymentService.Messaging.RabbitMQBackgroundConsumer>();
+    Console.WriteLine("✅ RabbitMQ Background Consumer registered");
+}
+
 // Payment Providers
 builder.Services.AddScoped<StripeProvider>();
 builder.Services.AddScoped<PayPalProvider>();

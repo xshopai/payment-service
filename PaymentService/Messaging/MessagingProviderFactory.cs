@@ -116,11 +116,27 @@ public class MessagingProviderFactory
     {
         var logger = _serviceProvider.GetRequiredService<ILogger<RabbitMQMessagingProvider>>();
         
+        // Try to get direct connection string first
         var connectionString = _configuration[RabbitMQConnectionKey]
             ?? _configuration["RabbitMQ:ConnectionString"]
             ?? _configuration.GetConnectionString("RabbitMQ")
-            ?? Environment.GetEnvironmentVariable(RabbitMQConnectionKey)
-            ?? throw new InvalidOperationException("RabbitMQ connection string not configured. Set RABBITMQ_CONNECTION_STRING.");
+            ?? Environment.GetEnvironmentVariable(RabbitMQConnectionKey);
+
+        // If no direct connection string, build from components
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            var host = _configuration["RabbitMQ:Host"] ?? "localhost";
+            var port = _configuration["RabbitMQ:Port"] ?? "5672";
+            var username = _configuration["RabbitMQ:Username"] ?? "admin";
+            var password = _configuration["RabbitMQ:Password"] ?? "admin123";
+            var virtualHost = _configuration["RabbitMQ:VirtualHost"] ?? "/";
+            
+            connectionString = $"amqp://{username}:{password}@{host}:{port}{virtualHost}";
+            
+            _logger.LogInformation(
+                "Built RabbitMQ connection string from components: {Host}:{Port}",
+                host, port);
+        }
 
         var exchangeName = _configuration["RabbitMQ:ExchangeName"] 
             ?? Environment.GetEnvironmentVariable("RABBITMQ_EXCHANGE_NAME")

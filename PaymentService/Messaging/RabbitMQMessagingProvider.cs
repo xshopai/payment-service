@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using RabbitMQ.Client;
+using System.Text;
 using System.Text.Json;
 
 namespace PaymentService.Messaging;
@@ -15,11 +17,9 @@ public class RabbitMQMessagingProvider : IMessagingProvider
     private bool _disposed;
 
     // RabbitMQ connection objects (lazy initialized)
-    // Using RabbitMQ.Client package types when available
-#pragma warning disable CS0169 // Field is never used - placeholder for future implementation
-    private object? _connection;
-    private object? _channel;
-#pragma warning restore CS0169
+    private IConnection? _connection;
+    private IModel? _channel;
+    private readonly object _lock = new();
 
     public string ProviderName => "rabbitmq";
 
@@ -31,6 +31,64 @@ public class RabbitMQMessagingProvider : IMessagingProvider
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
         _exchangeName = exchangeName;
+    }
+
+    /// <summary>
+    /// Gets or creates the RabbitMQ channel (thread-safe).
+    /// </summary>
+    private IModel GetChannel()
+    {
+        if (_channel != null && _channel.IsOpen)
+        {
+            return _channel;
+        }
+
+        lock (_lock)
+        {
+            if (_channel != null && _channel.IsOpen)
+            {
+                return _channel;
+            }
+
+            // Close existing connection if needed
+            if (_connection != null)
+            {
+                try
+                {
+                    _connection.Close();
+                    _connection.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error closing existing RabbitMQ connection");
+                }
+            }
+
+            // Create new connection
+            var factory = new ConnectionFactory
+            {
+                Uri = new Uri(_connectionString),
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
+                RequestedHeartbeat = TimeSpan.FromSeconds(60)
+            };
+
+            _connection = factory.CreateConnection();
+            _channel = _connection.CreateModel();
+
+            // Declare exchange (idempotent - safe to call multiple times)
+            _channel.ExchangeDeclare(
+                exchange: _exchangeName,
+                type: ExchangeType.Topic,
+                durable: true,
+                autoDelete: false);
+
+            _logger.LogInformation(
+                "RabbitMQ connection established: Exchange={Exchange}",
+                _exchangeName);
+
+            return _channel;
+        }
     }
 
     public async Task<bool> PublishEventAsync(
@@ -51,7 +109,7 @@ public class RabbitMQMessagingProvider : IMessagingProvider
         return await PublishEventInternalAsync(topic, eventData, correlationId, cancellationToken);
     }
 
-    private async Task<bool> PublishEventInternalAsync(
+    private Task<bool> PublishEventInternalAsync(
         string topic,
         object eventData,
         string? correlationId,
@@ -66,38 +124,38 @@ public class RabbitMQMessagingProvider : IMessagingProvider
                 correlationId ?? "N/A");
 
             // Serialize the message
-            var messageBody = JsonSerializer.SerializeToUtf8Bytes(eventData, new JsonSerializerOptions
+            var messageJson = JsonSerializer.Serialize(eventData, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = false
             });
+            var messageBody = Encoding.UTF8.GetBytes(messageJson);
 
-            // TODO: Implement actual RabbitMQ publishing when RabbitMQ.Client package is added
-            // For now, this is a placeholder that logs the operation
-            // 
-            // Implementation would look like:
-            // using var connection = factory.CreateConnection();
-            // using var channel = connection.CreateModel();
-            // var properties = channel.CreateBasicProperties();
-            // properties.Persistent = true;
-            // properties.CorrelationId = correlationId ?? Guid.NewGuid().ToString();
-            // properties.ContentType = "application/json";
-            // channel.BasicPublish(_exchangeName, topic, properties, messageBody);
+            // Get channel and publish
+            var channel = GetChannel();
 
-            _logger.LogWarning(
-                "RabbitMQ direct publishing not yet implemented. Add RabbitMQ.Client package and implement connection. Topic={Topic}",
-                topic);
+            // Set message properties
+            var properties = channel.CreateBasicProperties();
+            properties.Persistent = true; // Survive broker restart
+            properties.ContentType = "application/json";
+            properties.CorrelationId = correlationId ?? Guid.NewGuid().ToString();
+            properties.Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            properties.AppId = "payment-service";
 
-            await Task.CompletedTask;
+            // Publish to exchange with topic as routing key
+            channel.BasicPublish(
+                exchange: _exchangeName,
+                routingKey: topic,
+                basicProperties: properties,
+                body: messageBody);
 
             _logger.LogInformation(
-                "Would publish event via RabbitMQ: Topic={Topic}, CorrelationId={CorrelationId}, Size={Size} bytes",
+                "Successfully published event via RabbitMQ: Topic={Topic}, CorrelationId={CorrelationId}, Size={Size} bytes",
                 topic,
                 correlationId ?? "N/A",
                 messageBody.Length);
 
-            // Return false until properly implemented
-            return false;
+            return Task.FromResult(true);
         }
         catch (Exception ex)
         {
@@ -106,16 +164,30 @@ public class RabbitMQMessagingProvider : IMessagingProvider
                 "Failed to publish event via RabbitMQ: Topic={Topic}, CorrelationId={CorrelationId}",
                 topic,
                 correlationId ?? "N/A");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
     public Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
-        // TODO: Implement actual health check when RabbitMQ.Client is added
-        // Check if connection is open and channel is available
-        _logger.LogWarning("RabbitMQ health check not implemented - returning false");
-        return Task.FromResult(false);
+        try
+        {
+            // Check if connection and channel are open
+            var isHealthy = _connection != null && _connection.IsOpen &&
+                          _channel != null && _channel.IsOpen;
+
+            if (!isHealthy)
+            {
+                _logger.LogWarning("RabbitMQ health check failed: Connection or channel not open");
+            }
+
+            return Task.FromResult(isHealthy);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during RabbitMQ health check");
+            return Task.FromResult(false);
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -124,9 +196,19 @@ public class RabbitMQMessagingProvider : IMessagingProvider
 
         try
         {
-            // TODO: Close RabbitMQ connection and channel when implemented
-            // _channel?.Close();
-            // _connection?.Close();
+            // Close channel
+            if (_channel != null && _channel.IsOpen)
+            {
+                _channel.Close();
+                _channel.Dispose();
+            }
+
+            // Close connection
+            if (_connection != null && _connection.IsOpen)
+            {
+                _connection.Close();
+                _connection.Dispose();
+            }
             
             _logger.LogInformation("RabbitMQ messaging provider disposed");
         }

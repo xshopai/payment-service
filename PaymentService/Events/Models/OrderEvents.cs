@@ -1,7 +1,7 @@
 namespace PaymentService.Events.Models;
 
 /// <summary>
-/// Event payload for order.created event
+/// Event payload for order.placed event
 /// </summary>
 public class OrderCreatedEvent
 {

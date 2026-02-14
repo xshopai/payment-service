@@ -30,8 +30,8 @@ public class OrderEventConsumer : ControllerBase
     }
 
     /// <summary>
-    /// Handle order.placed event
-    /// Process payment when a new order is placed
+    /// Handle order.created event
+    /// Process payment when a new order is created
     /// </summary>
     [HttpPost("order-created")]
     public async Task<IActionResult> HandleOrderCreated([FromBody] OrderCreatedEvent orderEvent)
@@ -40,7 +40,7 @@ public class OrderEventConsumer : ControllerBase
 
         try
         {
-            _logger.Info($"Received order.placed event for order {orderEvent.OrderId}", correlationId, new
+            _logger.Info($"Received order.created event for order {orderEvent.OrderId}", correlationId, new
             {
                 operation = "ORDER_CREATED_EVENT",
                 orderId = orderEvent.OrderId,
@@ -105,7 +105,7 @@ public class OrderEventConsumer : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.Error($"Error handling order.placed event for order {orderEvent.OrderId}", ex, correlationId);
+            _logger.Error($"Error handling order.created event for order {orderEvent.OrderId}", ex, correlationId);
 
             // Return 200 to prevent Dapr from retrying
             // Log the error for investigation

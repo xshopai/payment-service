@@ -83,7 +83,7 @@ public class RabbitMQBackgroundConsumer : BackgroundService
             // Bind queue to topics we're interested in
             var topics = new[]
             {
-                "order.placed",      // Primary topic for new orders
+                "order.created",      // Primary topic for new orders
                 "order.cancelled",   // For refund processing
                 "payment.refund"     // Saga compensation - refund payment when order fails
             };
@@ -143,7 +143,7 @@ public class RabbitMQBackgroundConsumer : BackgroundService
             // Route to appropriate handler based on topic
             var handled = routingKey switch
             {
-                "order.placed" => await HandleOrderPlacedAsync(messageBody, correlationId, cancellationToken),
+                "order.created" => await HandleOrderCreatedAsync(messageBody, correlationId, cancellationToken),
                 "order.cancelled" => await HandleOrderCancelledAsync(messageBody, correlationId, cancellationToken),
                 "payment.refund" => await HandlePaymentRefundAsync(messageBody, correlationId, cancellationToken),
                 _ => false
@@ -178,7 +178,7 @@ public class RabbitMQBackgroundConsumer : BackgroundService
         }
     }
 
-    private async Task<bool> HandleOrderPlacedAsync(string messageBody, string correlationId, CancellationToken cancellationToken)
+    private async Task<bool> HandleOrderCreatedAsync(string messageBody, string correlationId, CancellationToken cancellationToken)
     {
         try
         {
@@ -190,12 +190,12 @@ public class RabbitMQBackgroundConsumer : BackgroundService
 
             if (orderEvent == null)
             {
-                _logger.LogWarning("Failed to deserialize order.placed event");
+                _logger.LogWarning("Failed to deserialize order.created event");
                 return false;
             }
 
             _logger.LogInformation(
-                "🔄 Processing order.placed event: OrderId={OrderId}, Amount={Amount}",
+                "🔄 Processing order.created event: OrderId={OrderId}, Amount={Amount}",
                 orderEvent.OrderId, orderEvent.TotalAmount);
 
             // Create a scope to resolve scoped services
@@ -235,7 +235,7 @@ public class RabbitMQBackgroundConsumer : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error handling order.placed event");
+            _logger.LogError(ex, "Error handling order.created event");
             return false;
         }
     }

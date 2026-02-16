@@ -24,6 +24,6 @@ if [ -f "PaymentService/appsettings.Development.json" ]; then
     echo "✅ Copied appsettings.Development.json → appsettings.json"
 fi
 
-# Run with .NET
+# Run with .NET (hot reload enabled)
 export ASPNETCORE_URLS=http://+:8009
-dotnet run --project PaymentService/PaymentService.csproj --no-launch-profile
+dotnet watch run --project PaymentService/PaymentService.csproj --no-launch-profile

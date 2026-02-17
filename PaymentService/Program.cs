@@ -14,6 +14,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using StripeProvider = PaymentService.Services.Providers.StripePaymentProvider;
 using PayPalProvider = PaymentService.Services.Providers.PayPalPaymentProvider;
+using SimulationProvider = PaymentService.Services.Providers.SimulationPaymentProvider;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Azure.Monitor.OpenTelemetry.Exporter;
@@ -32,7 +33,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep original property names
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase; // Use camelCase for JavaScript clients
     });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -103,7 +104,8 @@ if (string.IsNullOrEmpty(jwtKey))
     throw new InvalidOperationException("JWT Key is required. Set Jwt:Key in configuration.");
 }
 
-var key = Encoding.ASCII.GetBytes(jwtKey);
+// Use UTF8 encoding to match other services (auth-service, order-service)
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -118,6 +120,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+        
+        // Add JWT event handlers for debugging
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"❌ JWT Authentication failed: {context.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var claims = context.Principal?.Claims?.Select(c => $"{c.Type}={c.Value}");
+                Console.WriteLine($"✅ JWT Token validated. Claims: {string.Join(", ", claims ?? Array.Empty<string>())}");
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                Console.WriteLine($"⚠️ JWT Challenge: Error={context.Error}, ErrorDescription={context.ErrorDescription}");
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -151,6 +174,7 @@ if (messagingProvider.Equals("rabbitmq", StringComparison.OrdinalIgnoreCase))
 // Payment Providers
 builder.Services.AddScoped<StripeProvider>();
 builder.Services.AddScoped<PayPalProvider>();
+builder.Services.AddScoped<SimulationProvider>();
 // Square provider temporarily disabled due to SDK compatibility issues
 // builder.Services.AddScoped<SquarePaymentProvider>();
 builder.Services.AddScoped<IPaymentProviderFactory, PaymentProviderFactory>();

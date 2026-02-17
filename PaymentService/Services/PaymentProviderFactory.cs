@@ -28,6 +28,7 @@ public class PaymentProviderFactory : IPaymentProviderFactory
         {
             ["stripe"] = () => _serviceProvider.GetRequiredService<StripePaymentProvider>(),
             ["paypal"] = () => _serviceProvider.GetRequiredService<PayPalPaymentProvider>(),
+            ["simulation"] = () => _serviceProvider.GetRequiredService<SimulationPaymentProvider>(),
             // Square provider temporarily disabled due to SDK compatibility issues
             // ["square"] = () => _serviceProvider.GetRequiredService<SquarePaymentProvider>()
         };

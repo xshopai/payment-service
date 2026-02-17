@@ -77,25 +77,69 @@ public class PaymentService : IPaymentService
                 };
             }
 
-            // Check for duplicate payments
+            // Check for existing payment (idempotency check)
             var existingPayment = await _dbContext.Payments
-                .FirstOrDefaultAsync(p => p.OrderId == request.OrderId && 
-                                        p.Status == PaymentStatus.Succeeded);
+                .FirstOrDefaultAsync(p => p.OrderId == request.OrderId);
 
             if (existingPayment != null)
             {
-                _logger.Warn("Duplicate payment attempt detected", correlationId, new {
-                    operation = "PROCESS_PAYMENT",
-                    orderId = request.OrderId,
-                    existingPaymentId = existingPayment.Id,
-                    duplicateError = "payment_already_exists"
-                });
-                
-                return new PaymentResultDto
+                // Handle idempotency - return existing payment based on its status
+                switch (existingPayment.Status)
                 {
-                    IsSuccess = false,
-                    ErrorMessage = "Payment already exists for this order"
-                };
+                    case PaymentStatus.Succeeded:
+                    case PaymentStatus.PartiallyRefunded:
+                    case PaymentStatus.FullyRefunded:
+                        _logger.Info("Payment already exists and succeeded (idempotent response)", correlationId, new {
+                            operation = "PROCESS_PAYMENT",
+                            orderId = request.OrderId,
+                            existingPaymentId = existingPayment.Id,
+                            existingStatus = existingPayment.Status.ToString()
+                        });
+                        
+                        return new PaymentResultDto
+                        {
+                            IsSuccess = true,
+                            PaymentId = existingPayment.Id.ToString(),
+                            TransactionId = existingPayment.TransactionId,
+                            ProviderTransactionId = existingPayment.ProviderTransactionId,
+                            Status = existingPayment.Status,
+                            Amount = existingPayment.Amount,
+                            Currency = existingPayment.Currency,
+                            ProcessedAt = existingPayment.ProcessedAt
+                        };
+
+                    case PaymentStatus.Pending:
+                    case PaymentStatus.Processing:
+                        _logger.Info("Payment already in progress (idempotent response)", correlationId, new {
+                            operation = "PROCESS_PAYMENT",
+                            orderId = request.OrderId,
+                            existingPaymentId = existingPayment.Id,
+                            existingStatus = existingPayment.Status.ToString()
+                        });
+                        
+                        return new PaymentResultDto
+                        {
+                            IsSuccess = true,
+                            PaymentId = existingPayment.Id.ToString(),
+                            TransactionId = existingPayment.TransactionId,
+                            Status = existingPayment.Status,
+                            Amount = existingPayment.Amount,
+                            Currency = existingPayment.Currency
+                        };
+
+                    case PaymentStatus.Failed:
+                    case PaymentStatus.Cancelled:
+                        // Allow retry for failed/cancelled payments - delete old record and create new
+                        _logger.Info("Retrying failed/cancelled payment", correlationId, new {
+                            operation = "PROCESS_PAYMENT",
+                            orderId = request.OrderId,
+                            existingPaymentId = existingPayment.Id,
+                            previousStatus = existingPayment.Status.ToString()
+                        });
+                        _dbContext.Payments.Remove(existingPayment);
+                        await _dbContext.SaveChangesAsync();
+                        break;
+                }
             }
 
             // Get payment provider
@@ -126,7 +170,7 @@ public class PaymentService : IPaymentService
                 CustomerId = request.CustomerId,
                 Amount = request.Amount,
                 Currency = request.Currency.ToUpper(),
-                PaymentMethod = request.PaymentMethod ?? "unknown",
+                PaymentMethod = string.IsNullOrWhiteSpace(request.PaymentMethod) ? "credit_card" : request.PaymentMethod,
                 Provider = provider.ProviderName,
                 Status = PaymentStatus.Pending,
                 Description = request.Description,

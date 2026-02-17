@@ -11,4 +11,5 @@ public class PaymentProvidersSettings
     public StripeSettings Stripe { get; set; } = new();
     public PayPalSettings PayPal { get; set; } = new();
     public SquareSettings Square { get; set; } = new();
+    public SimulationSettings Simulation { get; set; } = new();
 }

@@ -210,27 +210,38 @@ public class RabbitMQBackgroundConsumer : BackgroundService
                 CustomerId = orderEvent.CustomerId,
                 Amount = orderEvent.TotalAmount,
                 Currency = orderEvent.Currency ?? "USD",
-                PaymentMethod = orderEvent.PaymentMethod ?? "card"
+                PaymentMethod = string.IsNullOrWhiteSpace(orderEvent.PaymentMethod) ? "credit_card" : orderEvent.PaymentMethod
             };
 
             var result = await paymentService.ProcessPaymentAsync(paymentRequest);
 
-            if (result != null)
+            if (result != null && result.IsSuccess)
             {
                 standardLogger.Info(
                     $"✅ Payment processed successfully: PaymentId={result.PaymentId}",
                     correlationId,
                     new { paymentId = result.PaymentId, orderId = orderEvent.OrderId });
+                
+                // NOTE: In Admin-Driven workflow, we do NOT publish events here.
+                // Admin must view payment in Admin UI and click "Confirm Payment"
+                // to publish payment.processed event and advance the order saga.
+
                 return true;
             }
             else
             {
                 standardLogger.Error(
-                    "❌ Payment processing failed",
+                    "❌ Payment processing failed - acknowledging message to prevent infinite retry",
                     null,
                     correlationId,
-                    new { orderId = orderEvent.OrderId });
-                return false;
+                    new { orderId = orderEvent.OrderId, error = result?.ErrorMessage });
+                
+                // IMPORTANT: Return true to acknowledge the message.
+                // Payment failures are business logic failures (e.g., provider config error)
+                // that won't succeed with retry. The failed payment record is saved in DB
+                // and can be retried manually via Admin UI.
+                // Returning false would cause infinite requeue loop.
+                return true;
             }
         }
         catch (Exception ex)

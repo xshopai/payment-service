@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PaymentService.Models.Entities;
 
 namespace PaymentService.Models.DTOs;
@@ -14,6 +15,8 @@ public class PaymentDto
     public string CustomerId { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Currency { get; set; } = string.Empty;
+    
+    [JsonPropertyName("provider")]
     public string PaymentProvider { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;
     public PaymentStatus Status { get; set; }

@@ -9,7 +9,11 @@ namespace PaymentService.Events.Consumers;
 
 /// <summary>
 /// Order Event Consumer
-/// Handles order-related events from Dapr pub/sub
+/// Handles order-related events from Dapr pub/sub or RabbitMQ (dev mode)
+/// 
+/// NOTE: In Admin-Driven workflow, payment-service processes payments but does NOT
+/// publish events. Admin must view payment in Admin UI and click "Confirm Payment"
+/// to advance the order saga.
 /// </summary>
 [ApiController]
 [Route("api/events/orders")]
@@ -66,13 +70,18 @@ public class OrderEventConsumer : ControllerBase
             }
 
             // Create payment request
+            // Default PaymentMethod to "credit_card" when not provided by order event
+            var paymentMethod = string.IsNullOrWhiteSpace(orderEvent.PaymentMethod)
+                ? "credit_card"
+                : orderEvent.PaymentMethod;
+
             var paymentRequest = new ProcessPaymentDto
             {
                 OrderId = orderEvent.OrderId,
                 CustomerId = orderEvent.CustomerId,
                 Amount = orderEvent.TotalAmount,
                 Currency = orderEvent.Currency,
-                PaymentMethod = orderEvent.PaymentMethod,
+                PaymentMethod = paymentMethod,
                 Description = $"Payment for order {orderEvent.OrderId}",
                 Metadata = orderEvent.Metadata ?? new Dictionary<string, object>()
             };
@@ -94,6 +103,10 @@ public class OrderEventConsumer : ControllerBase
                 status = paymentResult.Status,
                 success = paymentResult.IsSuccess
             });
+
+            // NOTE: In Admin-Driven workflow, we do NOT publish events here.
+            // Admin must view payment in Admin UI and click "Confirm Payment"
+            // to publish payment.processed event and advance the order saga.
 
             return Ok(new
             {

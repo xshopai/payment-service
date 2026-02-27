@@ -25,5 +25,6 @@ if [ -f "PaymentService/appsettings.Http.json" ]; then
 fi
 
 # Run with .NET (hot reload enabled)
+export ASPNETCORE_ENVIRONMENT=Development
 export ASPNETCORE_URLS=http://+:8009
 dotnet watch run --project PaymentService/PaymentService.csproj --no-launch-profile

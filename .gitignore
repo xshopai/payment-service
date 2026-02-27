@@ -416,3 +416,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Runtime config — generated from appsettings.Http.json or appsettings.Dapr.json at startup
+PaymentService/appsettings.Development.json

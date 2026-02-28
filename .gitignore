@@ -417,5 +417,5 @@ FodyWeavers.xsd
 *.msm
 *.msp
 
-# Runtime config — generated from appsettings.Http.json or appsettings.Dapr.json at startup
+# Runtime config — generated from appsettings.Direct.json or appsettings.Dapr.json at startup
 PaymentService/appsettings.Development.json

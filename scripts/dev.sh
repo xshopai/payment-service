@@ -18,10 +18,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$SERVICE_DIR"
 
-# Copy appsettings.Http.json → appsettings.Development.json for local development
-if [ -f "PaymentService/appsettings.Http.json" ]; then
-    cp "PaymentService/appsettings.Http.json" "PaymentService/appsettings.Development.json"
-    echo "✅ Copied appsettings.Http.json → appsettings.Development.json"
+# Copy appsettings.Direct.json → appsettings.Development.json for local development
+if [ -f "PaymentService/appsettings.Direct.json" ]; then
+    cp "PaymentService/appsettings.Direct.json" "PaymentService/appsettings.Development.json"
+    echo "✅ Copied appsettings.Direct.json → appsettings.Development.json"
 fi
 
 # Run with .NET (hot reload enabled)

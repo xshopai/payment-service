@@ -32,6 +32,9 @@ public class ConsulRegistrationService : IHostedService
         var port = int.Parse(Environment.GetEnvironmentVariable("PORT") ?? "8009");
         var host = Environment.GetEnvironmentVariable("HOST") ?? "localhost";
         var address = host == "0.0.0.0" ? "localhost" : host;
+        var healthCheckHost = _configuration["ConsulHealthHost"]
+            ?? Environment.GetEnvironmentVariable("CONSUL_HEALTH_HOST")
+            ?? "host.docker.internal";
         _serviceId = $"{serviceName}-{address}-{port}";
 
         var registration = new
@@ -42,7 +45,7 @@ public class ConsulRegistrationService : IHostedService
             Port = port,
             Check = new
             {
-                HTTP = $"http://{address}:{port}/health/live",
+                HTTP = $"http://{healthCheckHost}:{port}/health/live",
                 Interval = "10s",
                 Timeout = "5s",
                 DeregisterCriticalServiceAfter = "30s"

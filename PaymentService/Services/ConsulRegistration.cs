@@ -6,7 +6,7 @@ namespace PaymentService.Services;
 /// <summary>
 /// Consul self-registration hosted service.
 /// Registers on startup, deregisters on shutdown.
-/// Only active when CONSUL_URL environment variable is set.
+/// Only active when ConsulUrl is set in configuration or CONSUL_URL environment variable is set.
 /// </summary>
 public class ConsulRegistrationService : IHostedService
 {
@@ -23,7 +23,9 @@ public class ConsulRegistrationService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _consulUrl = Environment.GetEnvironmentVariable("CONSUL_URL") ?? string.Empty;
+        _consulUrl = _configuration["ConsulUrl"]
+            ?? Environment.GetEnvironmentVariable("CONSUL_URL")
+            ?? string.Empty;
         if (string.IsNullOrEmpty(_consulUrl)) return;
 
         var serviceName = "payment-service";
@@ -40,7 +42,7 @@ public class ConsulRegistrationService : IHostedService
             Port = port,
             Check = new
             {
-                HTTP = $"http://{address}:{port}/health",
+                HTTP = $"http://{address}:{port}/health/live",
                 Interval = "10s",
                 Timeout = "5s",
                 DeregisterCriticalServiceAfter = "30s"

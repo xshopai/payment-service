@@ -160,6 +160,9 @@ builder.Services.AddSingleton<DaprEventPublisher>();
 // Register Messaging abstraction layer (supports dapr, rabbitmq, servicebus via MESSAGING_PROVIDER config)
 builder.Services.AddMessaging(builder.Configuration);
 
+// Register Consul self-registration (registers on startup, deregisters on shutdown)
+builder.Services.AddHostedService<PaymentService.Services.ConsulRegistrationService>();
+
 // Register RabbitMQ background consumer only when using direct RabbitMQ mode (not Dapr)
 var messagingProvider = builder.Configuration["MESSAGING_PROVIDER"]
     ?? Environment.GetEnvironmentVariable("MESSAGING_PROVIDER")

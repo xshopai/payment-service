@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -76,7 +76,7 @@ jobs:
         if: >
           (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
           github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: ./publish
@@ -106,7 +106,7 @@ jobs:
     steps:
       # Download pre-built artifacts from build-and-test job
       - name: Download build artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: build-artifacts
           path: ./publish

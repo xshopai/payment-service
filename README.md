@@ -1,401 +1,345 @@
+<div align="center">
+
 # 💳 Payment Service
 
-Payment processing microservice for xshopai - handles payment transactions, refunds, and payment methods across multiple providers (Stripe, PayPal, Square).
+**Multi-provider payment processing microservice for the xshopai e-commerce platform**
 
-## 🚀 Quick Start
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com)
+[![C#](https://img.shields.io/badge/C%23-12-239120?style=for-the-badge&logo=csharp&logoColor=white)](https://learn.microsoft.com/dotnet/csharp/)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
+[![Dapr](https://img.shields.io/badge/Dapr-Enabled-0D597F?style=for-the-badge&logo=dapr&logoColor=white)](https://dapr.io)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-### Prerequisites
+[Getting Started](#-getting-started) •
+[Documentation](#-documentation) •
+[API Reference](#-api-reference) •
+[Contributing](#-contributing)
 
-- **.NET 8 SDK** ([Download](https://dotnet.microsoft.com/download/dotnet/8.0))
-- **SQL Server** 2019+ ([Download](https://www.microsoft.com/sql-server/sql-server-downloads))
-- **Dapr CLI** 1.16+ ([Install Guide](https://docs.dapr.io/getting-started/install-dapr-cli/))
+</div>
 
-### Setup
+---
 
-**1. Start SQL Server**
+## 🎯 Overview
 
-```bash
-# Using Docker (recommended)
-docker run -d --name payment-sqlserver -p 1433:1433 \
-  -e 'ACCEPT_EULA=Y' \
-  -e 'SA_PASSWORD=YourStrong@Passw0rd' \
-  mcr.microsoft.com/mssql/server:2019-latest
+The **Payment Service** handles payment transactions, refunds, and payment method management across multiple providers (Stripe, PayPal, Square). Built with a provider abstraction layer, it supports multi-currency operations, PCI compliance considerations, and idempotent payment processing with full audit trails.
 
-# Or install SQL Server locally
-```
-
-**2. Clone & Restore**
-
-```bash
-git clone https://github.com/xshopai/payment-service.git
-cd payment-service
-dotnet restore
-```
-
-**3. Configure Environment**
-
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit .env - update these values:
-# ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=payment_db;User Id=sa;Password=YourStrong@Passw0rd
-# Stripe__SecretKey=your_stripe_secret_key
-# Stripe__PublishableKey=your_stripe_publishable_key
-```
-
-**4. Apply Migrations**
-
-```bash
-dotnet ef database update
-```
-
-**5. Run Service**
-
-```bash
-# Start with Dapr (recommended)
-./run.sh       # Linux/Mac
-.\run.ps1      # Windows
-
-# Or run directly
-dotnet run
-```
-
-**6. Verify**
-
-```bash
-# Check health
-curl http://localhost:8080/health
-
-# Swagger UI
-Open http://localhost:8080/swagger
-```
-
-### Common Commands
-
-```bash
-# Run tests
-dotnet test
-
-# Build
-dotnet build
-
-# Apply new migration
-dotnet ef migrations add MigrationName
-
-# Production mode
-dotnet run --configuration Release
-```
-
-## 📚 Documentation
-
-| Document                                      | Description                             |
-| --------------------------------------------- | --------------------------------------- |
-| [📖 Developer Guide](docs/DEVELOPER_GUIDE.md) | Local setup, debugging, daily workflows |
-| [📘 Technical Reference](docs/TECHNICAL.md)   | Architecture, security, monitoring      |
-| [🤝 Contributing](docs/CONTRIBUTING.md)       | Contribution guidelines and workflow    |
-
-**API Documentation**: Swagger UI available at `/swagger` endpoint.
-
-## ⚙️ Configuration
-
-### Required Environment Variables
-
-```bash
-# Service
-ASPNETCORE_ENVIRONMENT=Development
-ASPNETCORE_URLS=http://+:8080
-
-# Database
-ConnectionStrings__DefaultConnection=Server=localhost,1433;Database=payment_db;User Id=sa;Password=YourStrong@Passw0rd
-
-# JWT
-Jwt__Key=your-secret-key-min-32-characters
-Jwt__Issuer=PaymentService
-Jwt__Audience=PaymentService.Users
-
-# Payment Providers
-Stripe__SecretKey=sk_test_...
-Stripe__PublishableKey=pk_test_...
-PayPal__ClientId=your_paypal_client_id
-PayPal__ClientSecret=your_paypal_client_secret
-
-# Dapr
-DAPR_HTTP_PORT=3500
-DAPR_GRPC_PORT=50001
-```
-
-See [.env.example](.env.example) for complete configuration options.
+---
 
 ## ✨ Key Features
 
-- Multi-provider support (Stripe, PayPal, Square)
-- Payment processing with provider abstraction
-- Refund management (full and partial)
-- Payment method storage and retrieval
-- Transaction history and audit trails
+<table>
+<tr>
+<td width="50%">
+
+### 💳 Multi-Provider Payments
+
+- Stripe, PayPal, and Square integration
+- Provider abstraction layer
 - Multi-currency support (USD, EUR, GBP, CAD)
+- Idempotent payment processing
+
+</td>
+<td width="50%">
+
+### 🔄 Refund Management
+
+- Full and partial refunds
+- Refund reason tracking
+- Provider-specific refund handling
+- Refund status monitoring
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 💾 Payment Methods
+
+- Secure payment method storage
+- Customer payment profiles
+- Default method selection
+- Provider tokenization
+
+</td>
+<td width="50%">
+
+### 🛡️ Security & Compliance
+
 - PCI compliance considerations
-- JWT authentication
-- Idempotency for payment operations
+- JWT Bearer authentication
+- Provider credential security
+- Complete transaction audit trails
 
-## API Endpoints
+</td>
+</tr>
+</table>
 
-### Payments
+---
 
-```http
-POST   /api/payments              # Process a payment
-GET    /api/payments              # Get payments with filtering
-GET    /api/payments/{id}         # Get specific payment
-POST   /api/payments/{id}/refund  # Process refund
-GET    /api/payments/order/{orderId} # Get payment by order ID
-```
-
-### Payment Methods
-
-```http
-POST   /api/paymentmethods        # Save payment method
-GET    /api/paymentmethods/customer/{customerId} # Get customer's payment methods
-DELETE /api/paymentmethods/{id}   # Delete payment method
-GET    /api/paymentmethods/supported-methods # Get supported payment methods
-GET    /api/paymentmethods/providers # Get available providers
-GET    /api/paymentmethods/providers/{name}/status # Check provider status
-```
-
-## Configuration
-
-### appsettings.json Structure
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=PaymentServiceDb;..."
-  },
-  "Jwt": {
-    "Key": "your-jwt-key",
-    "Issuer": "xshopai-payment-service",
-    "Audience": "xshopai-clients"
-  },
-  "PaymentService": {
-    "MaxPaymentAmount": 10000.0,
-    "DefaultCurrency": "USD",
-    "AllowedCurrencies": ["USD", "EUR", "GBP", "CAD"]
-  },
-  "PaymentProviders": {
-    "DefaultProvider": "stripe",
-    "Stripe": {
-      "IsEnabled": true,
-      "PublishableKey": "pk_test_...",
-      "SecretKey": "sk_test_...",
-      "WebhookSecret": "whsec_...",
-      "SupportedMethods": ["visa", "mastercard", "amex"]
-    },
-    "PayPal": {
-      "IsEnabled": true,
-      "ClientId": "your_paypal_client_id",
-      "ClientSecret": "your_paypal_client_secret",
-      "IsSandbox": true,
-      "ReturnUrl": "https://localhost:7000/payment/success",
-      "CancelUrl": "https://localhost:7000/payment/cancelled"
-    },
-    "Square": {
-      "IsEnabled": false,
-      "ApplicationId": "your_square_app_id",
-      "AccessToken": "your_square_access_token",
-      "IsSandbox": true
-    }
-  }
-}
-```
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- .NET Core 8 SDK
-- SQL Server (LocalDB for development)
-- Payment provider accounts (Stripe, PayPal, Square)
+- .NET 8 SDK
+- SQL Server 2019+
+- Docker & Docker Compose (optional)
+- Dapr CLI (for production-like setup)
 
-### Setup
+### Quick Start with Docker Compose
 
-1. **Clone and Navigate**
+```bash
+# Clone the repository
+git clone https://github.com/xshopai/payment-service.git
+cd payment-service
 
-   ```bash
-   cd payment-service
-   ```
+# Start SQL Server + service
+docker-compose up -d
 
-2. **Configure Connection String**
-   Update `appsettings.json` with your SQL Server connection string.
-
-3. **Configure Payment Providers**
-   Add your payment provider credentials to `appsettings.json` or `appsettings.Development.json`.
-
-4. **Install Dependencies**
-
-   ```bash
-   dotnet restore
-   ```
-
-5. **Run Database Migrations**
-
-   ```bash
-   dotnet ef database update
-   ```
-
-6. **Run the Service**
-
-   ```bash
-   dotnet run
-   ```
-
-7. **Access Swagger UI**
-   Navigate to `https://localhost:7001` for API documentation.
-
-## Database Schema
-
-### Core Tables
-
-- **Payments**: Main payment records with provider transaction IDs
-- **PaymentRefunds**: Refund records linked to original payments
-- **PaymentMethods**: Stored customer payment methods with provider tokens
-
-### Key Features
-
-- **Audit Fields**: CreatedAt, UpdatedAt, CreatedBy, UpdatedBy on all entities
-- **Metadata Storage**: JSON columns for provider-specific data
-- **Proper Indexing**: Performance optimized queries
-- **Money Data Type**: Precise financial calculations
-
-## Payment Flow Examples
-
-### Process Payment
-
-```json
-POST /api/payments
-{
-  "orderId": "ORD-12345",
-  "customerId": "CUST-67890",
-  "amount": 99.99,
-  "currency": "USD",
-  "paymentMethod": "visa",
-  "paymentProvider": "stripe",
-  "description": "Order #12345",
-  "paymentMethodDetails": {
-    "card": {
-      "number": "4242424242424242",
-      "expiryMonth": 12,
-      "expiryYear": 2025,
-      "cvc": "123",
-      "holderName": "John Doe"
-    }
-  }
-}
+# Verify the service is healthy
+curl http://localhost:8009/health
 ```
 
-### Process Refund
+### Local Development Setup
 
-```json
-POST /api/payments/123/refund
-{
-  "amount": 49.99,
-  "reason": "Customer requested partial refund"
-}
+<details>
+<summary><b>🔧 Without Dapr (Simple Setup)</b></summary>
+
+```bash
+# Restore dependencies
+dotnet restore
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Start SQL Server (Docker)
+docker-compose -f docker-compose.db.yml up -d
+
+# Apply migrations
+dotnet ef database update --project PaymentService
+
+# Run the service
+dotnet run --project PaymentService
 ```
 
-### Save Payment Method
+📖 See [Local Development Guide](docs/LOCAL_DEVELOPMENT.md) for detailed instructions.
 
-```json
-POST /api/paymentmethods
-{
-  "customerId": "CUST-67890",
-  "paymentProvider": "stripe",
-  "paymentMethodType": "card",
-  "isDefault": true,
-  "paymentMethodDetails": {
-    "card": {
-      "number": "4242424242424242",
-      "expiryMonth": 12,
-      "expiryYear": 2025,
-      "cvc": "123",
-      "holderName": "John Doe"
-    }
-  }
-}
+</details>
+
+<details>
+<summary><b>⚡ With Dapr (Production-like)</b></summary>
+
+```bash
+# Ensure Dapr is initialized
+dapr init
+
+# Start with Dapr sidecar
+./run.sh       # Linux/Mac
+.\run.ps1      # Windows
+
+# Or manually
+dapr run \
+  --app-id payment-service \
+  --app-port 8009 \
+  --dapr-http-port 3500 \
+  --dapr-grpc-port 50001 \
+  --resources-path .dapr/components \
+  --config .dapr/config.yaml \
+  -- dotnet run --project PaymentService
 ```
 
-## Security Considerations
+> **Note:** All services now use the standard Dapr ports (3500 for HTTP, 50001 for gRPC).
 
-### PCI Compliance
+</details>
 
-- **Never store raw card data** - Use provider tokenization
-- **HTTPS only** for all payment endpoints
-- **Secure configuration** of provider credentials
-- **Audit logging** of all payment operations
+---
 
-### Authentication
+## 📚 Documentation
 
-- All endpoints require valid JWT tokens
-- User context extracted from JWT claims
-- Correlation ID tracking for request tracing
+| Document                                          | Description                                        |
+| :------------------------------------------------ | :------------------------------------------------- |
+| 📘 [Local Development](docs/LOCAL_DEVELOPMENT.md) | Step-by-step local setup and development workflows |
+| 📘 [Technical Reference](docs/TECHNICAL.md)       | Architecture, security, monitoring                 |
+| ☁️ [Azure Container Apps](docs/ACA_DEPLOYMENT.md) | Deploy to serverless containers with built-in Dapr |
 
-## Monitoring and Logging
+**API Documentation**: Swagger UI available at `/swagger` endpoint.
 
-### Structured Logging
+---
 
-- Correlation ID in all log messages
-- Payment provider specific logging
-- Error tracking with contextual information
-- Performance metrics and timing
+## 🔌 API Reference
 
-### Health Checks
+### Payments
 
-- Database connectivity checks
-- Payment provider health status
-- Available at `/health` endpoint
+| Method | Endpoint                        | Description             |
+| :----- | :------------------------------ | :---------------------- |
+| `POST` | `/api/payments`                 | Process a payment       |
+| `GET`  | `/api/payments`                 | Get payments (filtered) |
+| `GET`  | `/api/payments/{id}`            | Get specific payment    |
+| `POST` | `/api/payments/{id}/refund`     | Process refund          |
+| `GET`  | `/api/payments/order/{orderId}` | Get payment by order    |
 
-## Testing
+### Payment Methods
+
+| Method   | Endpoint                                      | Description           |
+| :------- | :-------------------------------------------- | :-------------------- |
+| `POST`   | `/api/paymentmethods`                         | Save payment method   |
+| `GET`    | `/api/paymentmethods/customer/{customerId}`   | Customer's methods    |
+| `DELETE` | `/api/paymentmethods/{id}`                    | Delete payment method |
+| `GET`    | `/api/paymentmethods/supported-methods`       | Supported methods     |
+| `GET`    | `/api/paymentmethods/providers`               | Available providers   |
+| `GET`    | `/api/paymentmethods/providers/{name}/status` | Provider status       |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+dotnet test
+
+# Build without tests
+dotnet build
+
+# Run with specific configuration
+dotnet test --configuration Release
+
+# Apply migration
+dotnet ef database update --project PaymentService
+```
 
 ### Provider Testing
 
-- **Stripe**: Use test card numbers (`4242424242424242`)
-- **PayPal**: Use sandbox environment
-- **Square**: Use sandbox environment
+| Provider | Test Mode                     |
+| :------- | :---------------------------- |
+| Stripe   | Test card: `4242424242424242` |
+| PayPal   | Sandbox environment           |
+| Square   | Sandbox environment           |
 
-### Integration Testing
+---
 
-- Payment processing flows
-- Refund scenarios
-- Payment method management
-- Error handling cases
+## 🏗️ Project Structure
 
-## Deployment
-
-### Production Considerations
-
-1. **Secure Configuration**: Use Azure Key Vault or similar for secrets
-2. **Database**: Use production SQL Server instance
-3. **HTTPS**: Ensure all traffic is encrypted
-4. **Monitoring**: Set up application insights and logging
-5. **Backup**: Regular database backups
-6. **Provider Configuration**: Use production provider credentials
-
-### Environment Variables
-
-```bash
-ConnectionStrings__DefaultConnection="production-connection-string"
-PaymentProviders__Stripe__SecretKey="sk_live_..."
-PaymentProviders__PayPal__ClientSecret="production-secret"
-Jwt__Key="production-jwt-key"
+```
+payment-service/
+├── 📁 PaymentService/               # Main application project
+│   ├── 📁 Controllers/              # REST API endpoints
+│   ├── 📁 Services/                 # Business logic + provider adapters
+│   ├── 📁 Models/
+│   │   ├── 📁 Entities/             # Domain entities (Payment, Refund)
+│   │   └── 📁 DTOs/                 # Data transfer objects
+│   ├── 📁 Data/                     # EF Core context + migrations
+│   ├── 📁 Configuration/            # Settings classes
+│   └── 📄 Program.cs                # Application entry point
+├── 📁 PaymentService.Tests/         # Unit tests
+├── 📁 docs/                         # Documentation
+├── 📁 .dapr/                        # Dapr configuration
+│   ├── 📁 components/               # Pub/sub, state stores
+│   └── 📄 config.yaml               # Dapr runtime configuration
+├── 📄 docker-compose.yml            # Full service stack
+├── 📄 docker-compose.db.yml         # SQL Server only
+├── 📄 Dockerfile                    # Production container image
+└── 📄 PaymentService.sln            # Solution file
 ```
 
-## Contributing
+---
 
-1. Follow the existing code patterns
-2. Add unit tests for new features
-3. Update documentation
-4. Ensure PCI compliance considerations
-5. Test with all supported payment providers
+## 🔧 Technology Stack
 
-## License
+| Category          | Technology                                 |
+| :---------------- | :----------------------------------------- |
+| 🟣 Runtime        | .NET 8 / C# 12                             |
+| 🌐 Framework      | ASP.NET Core 8                             |
+| 🗄️ Database       | SQL Server 2022 with Entity Framework Core |
+| 💳 Providers      | Stripe, PayPal, Square (pluggable)         |
+| 📨 Messaging      | Dapr Pub/Sub (RabbitMQ backend)            |
+| 🔐 Authentication | JWT Bearer Tokens                          |
+| 📖 API Docs       | Swagger / OpenAPI (Swashbuckle)            |
+| 🧪 Testing        | xUnit                                      |
+| 📊 Observability  | Structured logging + correlation IDs       |
 
-This project is part of the xshopai microservices architecture.
+---
+
+## ⚡ Quick Reference
+
+```bash
+# 🐳 Docker Compose
+docker-compose up -d              # Start all services
+docker-compose down               # Stop all services
+docker-compose -f docker-compose.db.yml up -d  # SQL Server only
+
+# 🟣 Local Development
+dotnet run --project PaymentService  # Run service
+dotnet watch --project PaymentService  # Hot reload
+
+# ⚡ Dapr Development
+./run.sh                          # Linux/Mac
+.\run.ps1                         # Windows
+
+# 🧪 Testing
+dotnet test                       # Run all tests
+dotnet build                      # Build solution
+
+# 🔍 Health Check
+curl http://localhost:8009/health
+curl http://localhost:8009/swagger
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. **Fork** the repository
+2. **Create** a feature branch
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Write** tests for your changes
+4. **Run** the test suite
+   ```bash
+   dotnet test
+   ```
+5. **Commit** your changes
+   ```bash
+   git commit -m 'feat: add amazing feature'
+   ```
+6. **Push** to your branch
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. **Open** a Pull Request
+
+Please ensure your PR:
+
+- ✅ Passes all existing tests
+- ✅ Includes tests for new functionality
+- ✅ Follows PCI compliance considerations
+- ✅ Updates documentation as needed
+
+---
+
+## 🆘 Support
+
+| Resource         | Link                                                                         |
+| :--------------- | :--------------------------------------------------------------------------- |
+| 🐛 Bug Reports   | [GitHub Issues](https://github.com/xshopai/payment-service/issues)           |
+| 📖 Documentation | [docs/](docs/)                                                               |
+| 💬 Discussions   | [GitHub Discussions](https://github.com/xshopai/payment-service/discussions) |
+
+---
+
+## 📄 License
+
+This project is part of the **xshopai** e-commerce platform.
+Licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**[⬆ Back to Top](#-payment-service)**
+
+Made with ❤️ by the xshopai team
+
+</div>

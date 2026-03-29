@@ -20,7 +20,7 @@ RUN groupadd -r paymentuser && useradd -r -g paymentuser paymentuser \
 # -----------------------------------------------------------------------------
 # Build stage - Build the application
 # -----------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy project file and restore dependencies (better caching)
@@ -40,7 +40,7 @@ RUN dotnet publish "PaymentService/PaymentService.csproj" -c Release -o /app/pub
 # -----------------------------------------------------------------------------
 # Development stage - For local development
 # -----------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS development
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS development
 WORKDIR /app
 
 # Note: In development, mount code as volume for hot reload
